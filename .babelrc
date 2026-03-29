@@ -1,0 +1,7 @@
+// .babelrc
+{
+  "presets": [
+    "babel-preset-solid",
+    "@babel/preset-typescript"
+  ]
+}

@@ -1,0 +1,4 @@
+node_modules/
+kilocode-main/
+.env
+.env.local

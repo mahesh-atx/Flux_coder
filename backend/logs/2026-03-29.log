@@ -1,0 +1,85 @@
+{"timestamp":"2026-03-29T16:42:48.936Z","level":"INFO","message":"Starting FLUX backend server","data":"{\"port\":3030}"}
+{"timestamp":"2026-03-29T16:42:48.942Z","level":"INFO","message":"FLUX backend running at http://localhost:3030"}
+{"timestamp":"2026-03-29T16:42:48.943Z","level":"INFO","message":"Health check: http://localhost:3030/health"}
+{"timestamp":"2026-03-29T16:42:48.944Z","level":"INFO","message":"NVIDIA API: https://integrate.api.nvidia.com/v1"}
+{"timestamp":"2026-03-29T16:49:43.784Z","level":"INFO","message":"Starting FLUX backend server","data":"{\"port\":3030}"}
+{"timestamp":"2026-03-29T16:56:38.303Z","level":"INFO","message":"Starting FLUX backend server","data":"{\"port\":3030}"}
+{"timestamp":"2026-03-29T16:56:38.308Z","level":"INFO","message":"FLUX backend running at http://localhost:3030"}
+{"timestamp":"2026-03-29T16:56:38.312Z","level":"INFO","message":"Health check: http://localhost:3030/health"}
+{"timestamp":"2026-03-29T16:56:38.313Z","level":"INFO","message":"NVIDIA API: https://integrate.api.nvidia.com/v1"}
+{"timestamp":"2026-03-29T16:57:46.227Z","level":"INFO","message":"agent loop start","data":"{\"sessionID\":\"ses_01KMX8FDZ3CBZK0NKSNXBR4VSN\",\"messageCount\":1}"}
+{"timestamp":"2026-03-29T16:57:46.228Z","level":"INFO","message":"stream","data":"{\"modelID\":\"meta/llama3-70b-instruct\",\"providerID\":\"nvidia\"}"}
+{"timestamp":"2026-03-29T16:57:46.231Z","level":"ERROR","message":"agent loop error","data":"{\"error\":\"z.toJSONSchema is not a function\"}"}
+{"timestamp":"2026-03-29T16:58:25.417Z","level":"INFO","message":"agent loop start","data":"{\"sessionID\":\"ses_01KMX8GM8179SCVY34HD8ZQJVJ\",\"messageCount\":1}"}
+{"timestamp":"2026-03-29T16:58:25.419Z","level":"INFO","message":"stream","data":"{\"modelID\":\"meta/llama3-70b-instruct\",\"providerID\":\"nvidia\"}"}
+{"timestamp":"2026-03-29T16:58:25.426Z","level":"ERROR","message":"agent loop error","data":"{\"error\":\"z.toJSONSchema is not a function\"}"}
+{"timestamp":"2026-03-29T16:59:50.606Z","level":"INFO","message":"agent loop start","data":"{\"sessionID\":\"ses_01KMX8GM8179SCVY34HD8ZQJVJ\",\"messageCount\":3}"}
+{"timestamp":"2026-03-29T16:59:50.609Z","level":"INFO","message":"stream","data":"{\"modelID\":\"meta/llama3-70b-instruct\",\"providerID\":\"nvidia\"}"}
+{"timestamp":"2026-03-29T16:59:50.615Z","level":"ERROR","message":"agent loop error","data":"{\"error\":\"z.toJSONSchema is not a function\"}"}
+{"timestamp":"2026-03-29T17:05:33.581Z","level":"INFO","message":"Starting FLUX backend server","data":"{\"port\":3030}"}
+{"timestamp":"2026-03-29T17:07:32.320Z","level":"INFO","message":"Starting FLUX backend server","data":"{\"port\":3030}"}
+{"timestamp":"2026-03-29T17:07:32.326Z","level":"INFO","message":"FLUX backend running at http://localhost:3030"}
+{"timestamp":"2026-03-29T17:07:32.327Z","level":"INFO","message":"Health check: http://localhost:3030/health"}
+{"timestamp":"2026-03-29T17:07:32.328Z","level":"INFO","message":"NVIDIA API: https://integrate.api.nvidia.com/v1"}
+{"timestamp":"2026-03-29T17:07:42.380Z","level":"INFO","message":"Starting FLUX backend server","data":"{\"port\":3030}"}
+{"timestamp":"2026-03-29T17:10:25.746Z","level":"INFO","message":"Starting FLUX backend server","data":"{\"port\":3030}"}
+{"timestamp":"2026-03-29T17:10:25.753Z","level":"INFO","message":"FLUX backend running at http://localhost:3030"}
+{"timestamp":"2026-03-29T17:10:25.754Z","level":"INFO","message":"Health check: http://localhost:3030/health"}
+{"timestamp":"2026-03-29T17:10:25.755Z","level":"INFO","message":"NVIDIA API: https://integrate.api.nvidia.com/v1"}
+{"timestamp":"2026-03-29T17:10:37.124Z","level":"INFO","message":"agent loop start","data":"{\"sessionID\":\"ses_01KMX96YSF9AR38W96QNQ30H7Q\",\"messageCount\":1}"}
+{"timestamp":"2026-03-29T17:10:37.128Z","level":"INFO","message":"stream","data":"{\"modelID\":\"meta/llama3-70b-instruct\",\"providerID\":\"nvidia\"}"}
+{"timestamp":"2026-03-29T17:10:39.292Z","level":"INFO","message":"stream finished","data":"{\"sessionID\":\"ses_01KMX96YSF9AR38W96QNQ30H7Q\"}"}
+{"timestamp":"2026-03-29T17:10:39.351Z","level":"INFO","message":"agent loop done","data":"{\"sessionID\":\"ses_01KMX96YSF9AR38W96QNQ30H7Q\"}"}
+{"timestamp":"2026-03-29T17:10:52.436Z","level":"INFO","message":"agent loop start","data":"{\"sessionID\":\"ses_01KMX96YSF9AR38W96QNQ30H7Q\",\"messageCount\":3}"}
+{"timestamp":"2026-03-29T17:10:52.437Z","level":"INFO","message":"stream","data":"{\"modelID\":\"meta/llama3-70b-instruct\",\"providerID\":\"nvidia\"}"}
+{"timestamp":"2026-03-29T17:10:53.932Z","level":"INFO","message":"stream finished","data":"{\"sessionID\":\"ses_01KMX96YSF9AR38W96QNQ30H7Q\"}"}
+{"timestamp":"2026-03-29T17:10:53.938Z","level":"INFO","message":"agent loop done","data":"{\"sessionID\":\"ses_01KMX96YSF9AR38W96QNQ30H7Q\"}"}
+{"timestamp":"2026-03-29T17:11:15.041Z","level":"INFO","message":"agent loop start","data":"{\"sessionID\":\"ses_01KMX96YSF9AR38W96QNQ30H7Q\",\"messageCount\":5}"}
+{"timestamp":"2026-03-29T17:11:15.042Z","level":"INFO","message":"stream","data":"{\"modelID\":\"meta/llama3-70b-instruct\",\"providerID\":\"nvidia\"}"}
+{"timestamp":"2026-03-29T17:11:25.810Z","level":"INFO","message":"stream finished","data":"{\"sessionID\":\"ses_01KMX96YSF9AR38W96QNQ30H7Q\"}"}
+{"timestamp":"2026-03-29T17:11:25.815Z","level":"INFO","message":"agent loop done","data":"{\"sessionID\":\"ses_01KMX96YSF9AR38W96QNQ30H7Q\"}"}
+{"timestamp":"2026-03-29T17:15:32.756Z","level":"INFO","message":"Starting FLUX backend server","data":"{\"port\":3030}"}
+{"timestamp":"2026-03-29T17:15:32.761Z","level":"INFO","message":"FLUX backend running at http://localhost:3030"}
+{"timestamp":"2026-03-29T17:15:32.762Z","level":"INFO","message":"Health check: http://localhost:3030/health"}
+{"timestamp":"2026-03-29T17:15:32.763Z","level":"INFO","message":"NVIDIA API: https://integrate.api.nvidia.com/v1"}
+{"timestamp":"2026-03-29T17:15:51.742Z","level":"INFO","message":"agent loop start","data":"{\"sessionID\":\"ses_01KMX9GJ1F8QVX4ZJHQNNE4672\",\"messageCount\":1}"}
+{"timestamp":"2026-03-29T17:15:51.747Z","level":"INFO","message":"stream","data":"{\"modelID\":\"meta/llama3-70b-instruct\",\"providerID\":\"nvidia\"}"}
+{"timestamp":"2026-03-29T17:15:53.461Z","level":"INFO","message":"stream finished","data":"{\"sessionID\":\"ses_01KMX9GJ1F8QVX4ZJHQNNE4672\"}"}
+{"timestamp":"2026-03-29T17:15:53.539Z","level":"INFO","message":"agent loop done","data":"{\"sessionID\":\"ses_01KMX9GJ1F8QVX4ZJHQNNE4672\"}"}
+{"timestamp":"2026-03-29T17:29:16.441Z","level":"INFO","message":"Starting FLUX backend server","data":"{\"port\":3030}"}
+{"timestamp":"2026-03-29T17:29:16.445Z","level":"INFO","message":"FLUX backend running at http://localhost:3030"}
+{"timestamp":"2026-03-29T17:29:16.445Z","level":"INFO","message":"Health check: http://localhost:3030/health"}
+{"timestamp":"2026-03-29T17:29:16.446Z","level":"INFO","message":"NVIDIA API: https://integrate.api.nvidia.com/v1"}
+{"timestamp":"2026-03-29T17:32:52.144Z","level":"INFO","message":"Starting FLUX backend server","data":"{\"port\":3030}"}
+{"timestamp":"2026-03-29T17:35:03.698Z","level":"INFO","message":"Starting FLUX backend server","data":"{\"port\":3030}"}
+{"timestamp":"2026-03-29T17:35:03.703Z","level":"INFO","message":"FLUX backend running at http://localhost:3030"}
+{"timestamp":"2026-03-29T17:35:03.704Z","level":"INFO","message":"Health check: http://localhost:3030/health"}
+{"timestamp":"2026-03-29T17:35:03.705Z","level":"INFO","message":"NVIDIA API: https://integrate.api.nvidia.com/v1"}
+{"timestamp":"2026-03-29T17:35:14.012Z","level":"INFO","message":"agent loop start","data":"{\"sessionID\":\"ses_01KMXAM123S9S17FT5DMY2EMPG\",\"messageCount\":1}"}
+{"timestamp":"2026-03-29T17:35:14.013Z","level":"INFO","message":"stream","data":"{\"modelID\":\"meta/llama3-70b-instruct\",\"providerID\":\"nvidia\"}"}
+{"timestamp":"2026-03-29T17:35:15.697Z","level":"INFO","message":"stream finished","data":"{\"sessionID\":\"ses_01KMXAM123S9S17FT5DMY2EMPG\"}"}
+{"timestamp":"2026-03-29T17:35:15.752Z","level":"INFO","message":"agent loop done","data":"{\"sessionID\":\"ses_01KMXAM123S9S17FT5DMY2EMPG\"}"}
+{"timestamp":"2026-03-29T18:00:30.452Z","level":"INFO","message":"Starting FLUX backend server","data":"{\"port\":3030}"}
+{"timestamp":"2026-03-29T18:00:30.457Z","level":"INFO","message":"FLUX backend running at http://localhost:3030"}
+{"timestamp":"2026-03-29T18:00:30.458Z","level":"INFO","message":"Health check: http://localhost:3030/health"}
+{"timestamp":"2026-03-29T18:00:30.458Z","level":"INFO","message":"NVIDIA API: https://integrate.api.nvidia.com/v1"}
+{"timestamp":"2026-03-29T18:03:58.201Z","level":"INFO","message":"Starting FLUX backend server","data":"{\"port\":3030}"}
+{"timestamp":"2026-03-29T18:03:58.206Z","level":"INFO","message":"FLUX backend running at http://localhost:3030"}
+{"timestamp":"2026-03-29T18:03:58.207Z","level":"INFO","message":"Health check: http://localhost:3030/health"}
+{"timestamp":"2026-03-29T18:03:58.208Z","level":"INFO","message":"NVIDIA API: https://integrate.api.nvidia.com/v1"}
+{"timestamp":"2026-03-29T18:04:19.869Z","level":"INFO","message":"agent loop start","data":"{\"sessionID\":\"ses_01KMXC9A0AJMJNARPXJV5K0EN4\",\"messageCount\":1}"}
+{"timestamp":"2026-03-29T18:04:19.871Z","level":"INFO","message":"stream","data":"{\"modelID\":\"microsoft/phi-3-medium-128k-instruct\",\"providerID\":\"nvidia\"}"}
+{"timestamp":"2026-03-29T18:04:21.071Z","level":"INFO","message":"stream finished","data":"{\"sessionID\":\"ses_01KMXC9A0AJMJNARPXJV5K0EN4\"}"}
+{"timestamp":"2026-03-29T18:04:21.136Z","level":"INFO","message":"agent loop done","data":"{\"sessionID\":\"ses_01KMXC9A0AJMJNARPXJV5K0EN4\"}"}
+{"timestamp":"2026-03-29T18:06:27.980Z","level":"INFO","message":"Starting FLUX backend server","data":"{\"port\":3030}"}
+{"timestamp":"2026-03-29T18:06:27.983Z","level":"INFO","message":"FLUX backend running at http://localhost:3030"}
+{"timestamp":"2026-03-29T18:06:27.984Z","level":"INFO","message":"Health check: http://localhost:3030/health"}
+{"timestamp":"2026-03-29T18:06:27.985Z","level":"INFO","message":"NVIDIA API: https://integrate.api.nvidia.com/v1"}
+{"timestamp":"2026-03-29T18:08:38.858Z","level":"INFO","message":"Starting FLUX backend server","data":"{\"port\":3030}"}
+{"timestamp":"2026-03-29T18:08:38.862Z","level":"INFO","message":"FLUX backend running at http://localhost:3030"}
+{"timestamp":"2026-03-29T18:08:38.863Z","level":"INFO","message":"Health check: http://localhost:3030/health"}
+{"timestamp":"2026-03-29T18:08:38.864Z","level":"INFO","message":"NVIDIA API: https://integrate.api.nvidia.com/v1"}
+{"timestamp":"2026-03-29T18:32:05.508Z","level":"INFO","message":"agent loop start","data":"{\"sessionID\":\"ses_01KMXDW4KEBP8JBSN536FKEDZ0\",\"messageCount\":1}"}
+{"timestamp":"2026-03-29T18:32:05.513Z","level":"INFO","message":"stream","data":"{\"modelID\":\"meta/llama3-70b-instruct\",\"providerID\":\"nvidia\"}"}
+{"timestamp":"2026-03-29T18:32:07.622Z","level":"INFO","message":"stream finished","data":"{\"sessionID\":\"ses_01KMXDW4KEBP8JBSN536FKEDZ0\"}"}
+{"timestamp":"2026-03-29T18:32:07.695Z","level":"INFO","message":"agent loop done","data":"{\"sessionID\":\"ses_01KMXDW4KEBP8JBSN536FKEDZ0\"}"}
