@@ -1,14 +1,18 @@
 {
   "name": "flux-tui",
   "version": "1.0.0",
-  "description": "",
+  "description": "Flux AI Coding Agent - TUI-based AI coding assistant",
   "type": "module",
   "main": "index.js",
+  "bin": {
+    "flux": "./flux.ts"
+  },
   "scripts": {
     "dev": "bun run --conditions=browser index.tsx",
+    "start": "tsx flux.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
+  "keywords": ["ai", "coding", "agent", "tui", "nvidia"],
   "author": "",
   "license": "ISC",
   "dependencies": {

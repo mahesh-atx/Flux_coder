@@ -38,18 +38,88 @@ interface PendingAction {
 
 // --- Constants ---
 interface ModelEntry {
-  label: string     // Display name in UI
+  label: string
   providerID: string
-  modelID: string   // Actual model ID sent to NVIDIA API
+  modelID: string
+  description?: string
+  maxTokens?: number
+  contextLimit?: number
+  temperature?: number
+  topP?: number
+  isMultimodal?: boolean
+  supportsThinking?: boolean
+  speed?: 'fast' | 'slow'
+  role?: 'general' | 'reasoning' | 'agent'
+  extraParams?: Record<string, unknown>
 }
 
 const MODELS: ModelEntry[] = [
-  { label: "Llama 3 70B Instruct", providerID: "nvidia", modelID: "meta/llama3-70b-instruct" },
-  { label: "Llama 3 8B Instruct", providerID: "nvidia", modelID: "meta/llama3-8b-instruct" },
-  { label: "Nemotron 4 340B Instruct", providerID: "nvidia", modelID: "nvidia/nemotron-4-340b-instruct" },
-  { label: "Qwen 2.5 72B Instruct", providerID: "nvidia", modelID: "qwen/qwen2.5-72b-instruct" },
-  { label: "DeepSeek Coder V2", providerID: "nvidia", modelID: "deepseek-ai/deepseek-coder-v2" },
-  { label: "Phi 3 Medium 128K", providerID: "nvidia", modelID: "microsoft/phi-3-medium-128k-instruct" },
+  // 🧠 Reasoning Models
+  {
+    label: "GLM-5",
+    providerID: "nvidia",
+    modelID: "z-ai/glm5",
+    description: "Next-gen Multi-modal with Thinking",
+    maxTokens: 65536,
+    contextLimit: 202752,
+    temperature: 1.0,
+    topP: 1.0,
+    isMultimodal: true,
+    supportsThinking: true,
+    speed: "slow",
+    role: "reasoning",
+    extraParams: {
+      chat_template_kwargs: {
+        enable_thinking: true,
+        clear_thinking: false,
+      },
+    },
+  },
+
+  // ⚡ Fast General Model
+  {
+    label: "MiniMax M2.5",
+    providerID: "nvidia",
+    modelID: "minimaxai/minimax-m2.5",
+    description: "Fast, cost-efficient general-purpose model",
+    maxTokens: 8192,
+    contextLimit: 65536,
+    temperature: 1.0,
+    topP: 0.95,
+    isMultimodal: false,
+    supportsThinking: false,
+    speed: "fast",
+    role: "general",
+    extraParams: {},
+  },
+
+  // 🤖 Agent Model
+  {
+    label: "Nemotron-120B",
+    providerID: "nvidia",
+    modelID: "nvidia/nemotron-3-super-120b-a12b",
+    description: "Best for agents, reasoning, and planning",
+    maxTokens: 8192,
+    contextLimit: 131072,
+    temperature: 0.7,
+    topP: 0.9,
+    isMultimodal: false,
+    supportsThinking: true,
+    speed: "slow",
+    role: "agent",
+    extraParams: {
+      chat_template_kwargs: {
+        enable_thinking: true,
+      },
+    },
+  },
+
+  // Legacy Models
+  { label: "Llama 3.1 Nemotron 70B", providerID: "nvidia", modelID: "meta/llama-3.1-nemotron-70b-instruct", speed: "slow", role: "agent" },
+  { label: "Llama 3.1 70B Instruct", providerID: "nvidia", modelID: "meta/llama-3.1-70b-instruct", speed: "slow", role: "general" },
+  { label: "Llama 3.1 8B Instruct", providerID: "nvidia", modelID: "meta/llama-3.1-8b-instruct", speed: "fast", role: "general" },
+  { label: "Qwen 2.5 72B Instruct", providerID: "nvidia", modelID: "qwen/qwen2.5-72b-instruct", speed: "slow", role: "general" },
+  { label: "DeepSeek Coder V2", providerID: "nvidia", modelID: "deepseek-ai/deepseek-coder-v2", speed: "slow", role: "general" },
 ]
 
 const MODES: Mode[] = [
@@ -213,6 +283,7 @@ export default function App() {
   // --- Backend Session ---
   const [currentSessionId, setCurrentSessionId] = createSignal("")
   const BACKEND_URL = "http://localhost:3030"
+  const FLUX_CWD = process.env.FLUX_CWD || process.cwd()
 
   const createSession = async (): Promise<string> => {
     if (currentSessionId()) return currentSessionId()
@@ -220,7 +291,7 @@ export default function App() {
       const res = await fetch(`${BACKEND_URL}/api/session`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ directory: process.cwd() }),
+        body: JSON.stringify({ directory: FLUX_CWD }),
       })
       const session = await res.json()
       setCurrentSessionId(session.id)
@@ -255,6 +326,7 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           content: userText,
+          mode: mode.name.toLowerCase(),
           model: { providerID: modelEntry.providerID, modelID: modelEntry.modelID },
         }),
       })
@@ -607,8 +679,14 @@ export default function App() {
           <box flexGrow={1} flexDirection="column" justifyContent="center" alignItems="center">
             
             {/* Logo */}
-            <box flexDirection="column" marginBottom={3} alignItems="center">
+            <box flexDirection="column" marginBottom={1} alignItems="center">
               <text color="#eab308" bold>{LOGO}</text>
+            </box>
+
+            {/* Working Directory */}
+            <box flexDirection="row" marginBottom={3} alignItems="center">
+              <text color="#888"> Working in: </text>
+              <text color="#60a5fa" bold>{FLUX_CWD}</text>
             </box>
 
             {/* Container for Input + Shortcuts */}

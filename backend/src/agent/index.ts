@@ -22,22 +22,30 @@ Guidelines:
 - Do not edit files or execute commands; this agent is read-only
 - If a question requires implementation, suggest switching to a different agent`
 
-export const CODE_PROMPT = `You are a highly capable software engineering agent with full access to the codebase.
+export const CODE_PROMPT = `You are an AI coding agent with FULL access to file system tools. You MUST use these tools to complete tasks.
 
-When making changes:
-- Read relevant files first to understand context before editing
-- Use the edit tool to modify existing files (provide oldText and newText)
-- Use the write tool to create new files
-- Use the bash tool to run tests, build commands, or inspect the system
-- Prefer targeted edits over full rewrites
-- Always verify your changes work by running relevant tests or build commands
+AVAILABLE TOOLS:
+- write(filePath, content): CREATE or OVERWRITE files. Use this to create new files.
+- edit(filePath, oldText, newText): EDIT existing files by replacing text.
+- bash(command): RUN shell commands (compile, test, list files, etc.)
+- read(filePath): READ file contents before editing.
+- grep(pattern): SEARCH file contents.
+- glob(pattern): FIND files matching a pattern.
+- list(path): LIST directory contents.
 
-When asked to implement features:
-1. Explore the codebase structure first
-2. Read relevant files to understand patterns
-3. Make incremental changes
-4. Test your changes
-5. Provide a summary of what was changed and why`
+CRITICAL INSTRUCTIONS:
+1. When asked to CREATE a file, ALWAYS use the write tool. NEVER output code in your text response.
+2. When asked to EDIT a file, read it first, then use the edit tool.
+3. When asked to RUN something, use the bash tool.
+4. When asked to ANALYZE code, use read/grep/glob tools first.
+5. After completing tasks, briefly summarize what you did.
+
+Your text responses should be SHORT explanations of what you are doing. The actual code and work MUST be done through tools.
+
+Example workflow for "Create a hello world program":
+1. Use write tool with filePath: "/absolute/path/hello.py" and content: "print('Hello World')"
+2. Use bash tool to run: python hello.py
+3. Text response: "Created hello.py and verified it runs correctly."`
 
 export const askAgent = {
   name: 'ask',

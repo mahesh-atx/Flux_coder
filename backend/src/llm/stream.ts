@@ -82,6 +82,7 @@ export async function stream(input: StreamInput) {
     directory: input.directory,
     platform: process.platform,
     agentPrompt: input.agentPrompt,
+    modelId: input.model.modelID,
   })
 
   const model = getModel(input.model)
@@ -90,27 +91,40 @@ export async function stream(input: StreamInput) {
   const allToolIds = allToolInfos.map(t => t.id)
   const disabledSet = getDisabledTools(allToolIds, input.ruleset)
 
+  log.info('tools available', { allToolIds, disabledSet: Array.from(disabledSet) })
+
   const tools: Record<string, any> = {}
   for (const t of allToolInfos) {
     if (disabledSet.has(t.id)) continue
 
     const schema = zodToJsonSchema(t.parameters)
+    log.info('registering tool', { id: t.id, description: t.description, schema })
+    
     tools[t.id] = tool({
       id: t.id as any,
       description: t.description,
       inputSchema: jsonSchema(schema as any),
       async execute(args: any, options: any) {
+        log.info('executing tool', { id: t.id, args })
         const ctx = {
           sessionID: input.sessionID,
           abort: options?.abortSignal ?? new AbortController().signal,
           messageID: 'msg_' + Date.now(),
           directory: input.directory,
         }
-        const result = await t.execute(args, ctx)
-        return result
+        try {
+          const result = await t.execute(args, ctx)
+          log.info('tool result', { id: t.id, output: result.output?.slice(0, 200) })
+          return result
+        } catch (error: any) {
+          log.error('tool error', { id: t.id, error: error.message })
+          throw error
+        }
       },
     })
   }
+
+  log.info('tools registered', { toolIds: Object.keys(tools) })
 
   return streamText({
     model,

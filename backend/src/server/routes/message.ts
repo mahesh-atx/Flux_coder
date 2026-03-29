@@ -31,6 +31,7 @@ messageRoutes.post('/:sessionId/message', async (c) => {
         await agentLoop({
           sessionID: sessionId,
           userContent: body.content,
+          mode: body.mode,
           model: body.model ? { providerID: body.model.providerID, modelID: body.model.modelID } : undefined,
           write: writer,
           abort: abort.signal,

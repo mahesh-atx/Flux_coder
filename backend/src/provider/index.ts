@@ -29,6 +29,6 @@ export function getModel(config: ModelConfig): LanguageModelV2 {
 export function defaultModel(): ModelConfig {
   return {
     providerID: 'nvidia',
-    modelID: 'meta/llama3-70b-instruct',
+    modelID: 'meta/llama-3.1-nemotron-70b-instruct',
   }
 }

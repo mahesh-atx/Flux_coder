@@ -3,11 +3,10 @@ import {
   getSession,
   getMessages,
   addMessage,
-  updateMessage,
   updateSessionTitle,
   touchSession,
 } from '../session'
-import { askAgent } from '../agent'
+import { getAgentByMode, getAgentRuleset, buildSystemPrompt } from '../agent'
 import { Log } from '../util/log'
 import { publish } from '../event/bus'
 
@@ -16,6 +15,7 @@ type SSEWriter = (event: string, data: any) => void
 export async function agentLoop(input: {
   sessionID: string
   userContent: string
+  mode?: string
   model?: { providerID: string; modelID: string }
   write: SSEWriter
   abort: AbortSignal
@@ -23,25 +23,23 @@ export async function agentLoop(input: {
   const log = Log
   const { sessionID, userContent, write, abort } = input
 
+  const mode = (input.mode || 'ask').toLowerCase()
+  const agent = getAgentByMode(mode)
+  const ruleset = getAgentRuleset(mode)
+
   const session = getSession(sessionID)
   if (!session) throw new Error('Session not found')
 
   touchSession(sessionID)
 
-  const userMsg = addMessage(sessionID, {
+  const modelConfig = input.model ?? { providerID: 'nvidia', modelID: 'meta/llama-3.1-nemotron-70b-instruct' }
+
+  addMessage(sessionID, {
     role: 'user',
     content: userContent,
-    agent: 'ask',
-    model: input.model ?? { providerID: 'nvidia', modelID: 'meta/llama3-70b-instruct' },
+    agent: agent.name,
+    model: modelConfig,
   })
-
-  const ruleset = [
-    { permission: '*', pattern: '*', action: 'deny' as const },
-    { permission: 'read', pattern: '*', action: 'allow' as const },
-    { permission: 'grep', pattern: '*', action: 'allow' as const },
-    { permission: 'glob', pattern: '*', action: 'allow' as const },
-    { permission: 'list', pattern: '*', action: 'allow' as const },
-  ]
 
   const existingMessages = getMessages(sessionID)
   const conversationMessages = existingMessages.map(m => ({
@@ -52,12 +50,19 @@ export async function agentLoop(input: {
   let assistantContent = ''
 
   try {
-    log.info('agent loop start', { sessionID, messageCount: conversationMessages.length })
+    log.info('agent loop start', { sessionID, mode, messageCount: conversationMessages.length })
+
+    const systemPrompt = buildSystemPrompt({
+      directory: session.directory,
+      platform: process.platform,
+      agentPrompt: agent.prompt,
+      modelId: modelConfig.modelID,
+    })
 
     const result = await llmStream({
       sessionID,
-      model: input.model ?? { providerID: 'nvidia', modelID: 'meta/llama3-70b-instruct' },
-      agentPrompt: askAgent.prompt,
+      model: modelConfig,
+      agentPrompt: agent.prompt,
       directory: session.directory,
       messages: conversationMessages,
       ruleset,
@@ -123,11 +128,11 @@ export async function agentLoop(input: {
 
     publish('session.updated', { sessionID })
 
-    const assistantMsg = addMessage(sessionID, {
+    addMessage(sessionID, {
       role: 'assistant',
       content: assistantContent || '(No response)',
-      agent: 'ask',
-      model: input.model ?? { providerID: 'nvidia', modelID: 'meta/llama3-70b-instruct' },
+      agent: agent.name,
+      model: modelConfig,
       finish: 'completed',
       completedAt: Date.now(),
     })
@@ -138,15 +143,15 @@ export async function agentLoop(input: {
     }
 
     write('done', { type: 'done' })
-    log.info('agent loop done', { sessionID })
+    log.info('agent loop done', { sessionID, mode })
 
   } catch (error: any) {
     log.error('agent loop error', { error: error.message })
     addMessage(sessionID, {
       role: 'assistant',
       content: `Error: ${error.message}`,
-      agent: 'ask',
-      model: input.model ?? { providerID: 'nvidia', modelID: 'meta/llama3-70b-instruct' },
+      agent: agent.name,
+      model: modelConfig,
       finish: 'error',
     })
     write('error', { type: 'error', message: error.message })
