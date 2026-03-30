@@ -1,6 +1,12 @@
 import { createSignal, For, Show, onMount, onCleanup, createMemo } from 'solid-js'
 import { useKeyboard, useTerminalDimensions } from '@opentui/solid'
 
+// --- Simple frontend logger ---
+const Log = {
+  info: (msg: string, data?: any) => console.log(`[${new Date().toISOString()}] [INFO] ${msg}`, data ?? ''),
+  error: (msg: string, data?: any) => console.error(`[${new Date().toISOString()}] [ERROR] ${msg}`, data ?? ''),
+}
+
 // --- Types ---
 type ModeName = 'Code' | 'Plan' | 'Debug' | 'Orchestrator' | 'Ask'
 interface Mode {
@@ -17,6 +23,13 @@ interface CommandCategory {
   category: string
   items: CommandItem[]
 }
+interface ToolCallEntry {
+  tool: string
+  args: Record<string, any>
+  result?: string
+  error?: boolean
+  status: 'running' | 'done' | 'error'
+}
 interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
@@ -25,6 +38,8 @@ interface ChatMessage {
   thinking?: string
   thinkingExpanded?: boolean
   suggestedActions?: string[]
+  toolCalls?: ToolCallEntry[]
+  toolCallsExpanded?: boolean
 }
 interface FileItem {
   name: string
@@ -48,78 +63,16 @@ interface ModelEntry {
   topP?: number
   isMultimodal?: boolean
   supportsThinking?: boolean
-  speed?: 'fast' | 'slow'
+  speed?: 'fast' | 'slow' | 'fastest' | 'medium'
   role?: 'general' | 'reasoning' | 'agent'
   extraParams?: Record<string, unknown>
 }
 
-const MODELS: ModelEntry[] = [
-  // 🧠 Reasoning Models
-  {
-    label: "GLM-5",
-    providerID: "nvidia",
-    modelID: "z-ai/glm5",
-    description: "Next-gen Multi-modal with Thinking",
-    maxTokens: 65536,
-    contextLimit: 202752,
-    temperature: 1.0,
-    topP: 1.0,
-    isMultimodal: true,
-    supportsThinking: true,
-    speed: "slow",
-    role: "reasoning",
-    extraParams: {
-      chat_template_kwargs: {
-        enable_thinking: true,
-        clear_thinking: false,
-      },
-    },
-  },
-
-  // ⚡ Fast General Model
-  {
-    label: "MiniMax M2.5",
-    providerID: "nvidia",
-    modelID: "minimaxai/minimax-m2.5",
-    description: "Fast, cost-efficient general-purpose model",
-    maxTokens: 8192,
-    contextLimit: 65536,
-    temperature: 1.0,
-    topP: 0.95,
-    isMultimodal: false,
-    supportsThinking: false,
-    speed: "fast",
-    role: "general",
-    extraParams: {},
-  },
-
-  // 🤖 Agent Model
-  {
-    label: "Nemotron-120B",
-    providerID: "nvidia",
-    modelID: "nvidia/nemotron-3-super-120b-a12b",
-    description: "Best for agents, reasoning, and planning",
-    maxTokens: 8192,
-    contextLimit: 131072,
-    temperature: 0.7,
-    topP: 0.9,
-    isMultimodal: false,
-    supportsThinking: true,
-    speed: "slow",
-    role: "agent",
-    extraParams: {
-      chat_template_kwargs: {
-        enable_thinking: true,
-      },
-    },
-  },
-
-  // Legacy Models
-  { label: "Llama 3.1 Nemotron 70B", providerID: "nvidia", modelID: "meta/llama-3.1-nemotron-70b-instruct", speed: "slow", role: "agent" },
-  { label: "Llama 3.1 70B Instruct", providerID: "nvidia", modelID: "meta/llama-3.1-70b-instruct", speed: "slow", role: "general" },
-  { label: "Llama 3.1 8B Instruct", providerID: "nvidia", modelID: "meta/llama-3.1-8b-instruct", speed: "fast", role: "general" },
-  { label: "Qwen 2.5 72B Instruct", providerID: "nvidia", modelID: "qwen/qwen2.5-72b-instruct", speed: "slow", role: "general" },
-  { label: "DeepSeek Coder V2", providerID: "nvidia", modelID: "deepseek-ai/deepseek-coder-v2", speed: "slow", role: "general" },
+// Fallback models if API fetch fails
+const FALLBACK_MODELS: ModelEntry[] = [
+  { label: "Llama 3.3 70B", providerID: "nvidia", modelID: "meta/llama-3.3-70b-instruct", description: "Latest Llama 3.3", speed: "fast", role: "general" },
+  { label: "Llama 3.1 70B", providerID: "nvidia", modelID: "meta/llama-3.1-70b-instruct", description: "Llama 3.1 70B", speed: "fast", role: "general" },
+  { label: "Llama 3.1 8B", providerID: "nvidia", modelID: "meta/llama-3.1-8b-instruct", description: "Fast Llama 3.1", speed: "fastest", role: "general" },
 ]
 
 const MODES: Mode[] = [
@@ -179,9 +132,11 @@ export default function App() {
   const [view, setView] = createSignal('home')
   const [activeModal, setActiveModal] = createSignal('none')
 
-  // App states
-  const [activeModel, setActiveModel] = createSignal(MODELS[0].label)
-  const [activeModelEntry, setActiveModelEntry] = createSignal(MODELS[0])
+  // Model states - dynamic from API
+  const [MODELS, setMODELS] = createSignal<ModelEntry[]>(FALLBACK_MODELS)
+  const [modelsLoaded, setModelsLoaded] = createSignal(false)
+  const [activeModel, setActiveModel] = createSignal(FALLBACK_MODELS[0].label)
+  const [activeModelEntry, setActiveModelEntry] = createSignal<ModelEntry>(FALLBACK_MODELS[0])
   const [selectedModelIndex, setSelectedModelIndex] = createSignal(0)
   const [modelSearch, setModelSearch] = createSignal("")
   const [selectedCommandIndex, setSelectedCommandIndex] = createSignal(0)
@@ -202,11 +157,53 @@ export default function App() {
   onMount(() => {
     const timer = setInterval(() => setCursorVisible(v => !v), 500)
     const spinTimer = setInterval(() => setSpinnerIndex(i => (i + 1) % SPINNER_FRAMES.length), 80)
+
+    // Fetch models from backend API
+    fetchModels()
+
     onCleanup(() => {
       clearInterval(timer)
       clearInterval(spinTimer)
     })
   })
+
+  // Fetch models from backend
+  const fetchModels = async () => {
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/models`)
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = await res.json()
+      if (data.models && data.models.length > 0) {
+        const apiModels: ModelEntry[] = data.models.map((m: any) => ({
+          label: m.name,
+          providerID: m.providerID,
+          modelID: m.id.replace(`${m.providerID}/`, ''),
+          description: `${m.family || ''} ${m.role || ''} model`.trim(),
+          contextLimit: m.limit?.context,
+          maxTokens: m.limit?.output,
+          supportsThinking: m.capabilities?.reasoning,
+          speed: m.speed,
+          role: m.role,
+        }))
+        setMODELS(apiModels)
+        // Update active model if current one is not in the new list
+        const currentEntry = activeModelEntry()
+        const found = apiModels.find((m: ModelEntry) => m.modelID === currentEntry.modelID)
+        if (found) {
+          setActiveModelEntry(found)
+          setActiveModel(found.label)
+        } else if (apiModels.length > 0) {
+          setActiveModelEntry(apiModels[0])
+          setActiveModel(apiModels[0].label)
+        }
+        setModelsLoaded(true)
+        Log.info("models loaded from API", { count: apiModels.length })
+      }
+    } catch (err) {
+      Log.error("failed to fetch models from API, using fallback", { error: String(err) })
+      setModelsLoaded(true) // still mark as loaded, using fallback
+    }
+  }
 
   // Chat states
   const [query, setQuery] = createSignal("")
@@ -221,7 +218,7 @@ export default function App() {
   const filteredFiles = createMemo(() => FILES.filter(f => f.path.toLowerCase().includes(mentionQuery().toLowerCase())))
   const filteredModels = createMemo(() => {
     const search = modelSearch().toLowerCase()
-    return MODELS.filter(m => m.label.toLowerCase().includes(search))
+    return MODELS().filter(m => m.label.toLowerCase().includes(search))
   })
   const filteredCommands = createMemo(() => {
     const search = commandSearch().toLowerCase()
@@ -340,7 +337,11 @@ export default function App() {
       const decoder = new TextDecoder()
       let buffer = ""
       let assistantContent = ""
-      let toolCallInfo = ""
+      let thinkingContent = ""
+      let insideThinkBlock = false
+      let thinkBuffer = ""
+      let hadThinkingContent = false
+      const toolCalls: ToolCallEntry[] = []
 
       setChatHistory(prev => [
         ...prev,
@@ -349,11 +350,24 @@ export default function App() {
           content: "",
           model: activeModel(),
           mode,
-          thinking: `Processing with ${mode.name} mode...`,
+          thinking: isThinkingEnabled() ? "Processing..." : undefined,
           thinkingExpanded: isThinkingEnabled(),
           suggestedActions: [],
+          toolCalls: [],
+          toolCallsExpanded: true,
         },
       ])
+
+      const updateLastAssistant = (updates: Partial<ChatMessage>) => {
+        setChatHistory(prev => {
+          const newHist = [...prev]
+          const last = newHist[newHist.length - 1]
+          if (last && last.role === "assistant") {
+            newHist[newHist.length - 1] = { ...last, ...updates }
+          }
+          return newHist
+        })
+      }
 
       while (true) {
         const { value, done } = await reader.read()
@@ -373,39 +387,105 @@ export default function App() {
               const event = JSON.parse(dataStr)
 
               if (currentEvent === "text-delta" || event.type === "text-delta") {
-                assistantContent += event.text
-                setChatHistory(prev => {
-                  const newHist = [...prev]
-                  const last = newHist[newHist.length - 1]
-                  if (last && last.role === "assistant") {
-                    newHist[newHist.length - 1] = { ...last, content: assistantContent }
+                let text: string = event.text ?? ""
+
+                // Buffer for incomplete open/close tags at chunk boundaries
+                thinkBuffer += text
+                let result = ""
+
+                // Process the buffer
+                while (thinkBuffer.length > 0) {
+                  if (!insideThinkBlock) {
+                    // Look for opening tag: <think> or <thinking>
+                    const openMatch = thinkBuffer.match(/<(think(?:ing)?)>/i)
+                    if (openMatch && openMatch.index !== undefined) {
+                      // Text before the tag goes to response
+                      result += thinkBuffer.slice(0, openMatch.index)
+                      // Switch to think mode
+                      insideThinkBlock = true
+                      hadThinkingContent = true
+                      thinkBuffer = thinkBuffer.slice(openMatch.index + openMatch[0].length)
+                    } else {
+                      // Check if buffer ends with a partial opening tag
+                      const lastBracket = thinkBuffer.lastIndexOf('<')
+                      if (lastBracket !== -1 && lastBracket > thinkBuffer.length - 20) {
+                        const afterBracket = thinkBuffer.slice(lastBracket).toLowerCase()
+                        if (/^<\/?(think)?$/.test(afterBracket) || /^<\/?(thinki)?$/.test(afterBracket) || /^<\/?(thinkin)?$/.test(afterBracket) || /^<\/?(thinking)?$/.test(afterBracket)) {
+                          // Wait for next chunk to complete the tag
+                          break
+                        }
+                      }
+                      // No tag found, add all to response
+                      result += thinkBuffer
+                      thinkBuffer = ""
+                    }
+                  } else {
+                    // Inside think block - look for closing tag
+                    const closeMatch = thinkBuffer.match(/<\/(think(?:ing)?)>/i)
+                    if (closeMatch && closeMatch.index !== undefined) {
+                      // Content before close tag goes to thinking
+                      thinkingContent += thinkBuffer.slice(0, closeMatch.index)
+                      insideThinkBlock = false
+                      thinkBuffer = thinkBuffer.slice(closeMatch.index + closeMatch[0].length)
+                    } else {
+                      // Check if buffer ends with a partial closing tag
+                      const lastBracket = thinkBuffer.lastIndexOf('<')
+                      if (lastBracket !== -1 && lastBracket > thinkBuffer.length - 20) {
+                        const afterBracket = thinkBuffer.slice(lastBracket).toLowerCase()
+                        if (/^<\/?(think)?$/.test(afterBracket) || /^<\/?(thinki)?$/.test(afterBracket) || /^<\/?(thinkin)?$/.test(afterBracket) || /^<\/?(thinking)?$/.test(afterBracket)) {
+                          // Wait for next chunk
+                          break
+                        }
+                      }
+                      // All content goes to thinking
+                      thinkingContent += thinkBuffer
+                      thinkBuffer = ""
+                    }
                   }
-                  return newHist
+                }
+
+                if (result) {
+                  assistantContent += result
+                }
+
+                updateLastAssistant({
+                  content: assistantContent,
+                  ...(hadThinkingContent ? { thinking: thinkingContent, thinkingExpanded: isThinkingEnabled() } : {}),
                 })
               }
 
               if (currentEvent === "tool-call" || event.type === "tool-call") {
-                toolCallInfo = `${event.tool}: ${event.args?.filePath || event.args?.pattern || event.args?.path || JSON.stringify(event.args)}`
-                setChatHistory(prev => {
-                  const newHist = [...prev]
-                  const last = newHist[newHist.length - 1]
-                  if (last && last.role === "assistant") {
-                    newHist[newHist.length - 1] = {
-                      ...last,
-                      thinking: `Using tool: ${toolCallInfo}`,
-                      thinkingExpanded: true,
-                    }
-                  }
-                  return newHist
+                toolCalls.push({
+                  tool: event.tool,
+                  args: event.args ?? {},
+                  status: 'running',
+                })
+                updateLastAssistant({
+                  toolCalls: [...toolCalls],
+                  toolCallsExpanded: true,
                 })
               }
 
               if (currentEvent === "tool-result" || event.type === "tool-result") {
-                toolCallInfo = ""
+                // Find matching tool call by name (last running one)
+                for (let i = toolCalls.length - 1; i >= 0; i--) {
+                  if (toolCalls[i].tool === event.tool && toolCalls[i].status === 'running') {
+                    toolCalls[i].result = typeof event.output === 'string'
+                      ? event.output.slice(0, 500)
+                      : JSON.stringify(event.output).slice(0, 500)
+                    toolCalls[i].error = !!event.error
+                    toolCalls[i].status = event.error ? 'error' : 'done'
+                    break
+                  }
+                }
+                updateLastAssistant({
+                  toolCalls: [...toolCalls],
+                })
               }
 
               if (currentEvent === "error" || event.type === "error") {
-                assistantContent = event.message || "An error occurred"
+                assistantContent += event.message || "An error occurred"
+                updateLastAssistant({ content: assistantContent })
               }
             } catch {}
           }
@@ -414,20 +494,34 @@ export default function App() {
         setTimeout(scrollChatToBottom, 0)
       }
 
-      setChatHistory(prev => {
-        const newHist = [...prev]
-        const last = newHist[newHist.length - 1]
-        if (last && last.role === "assistant") {
-          newHist[newHist.length - 1] = {
-            ...last,
-            content: assistantContent || "(No response)",
-            thinking: toolCallInfo ? `Used tool: ${toolCallInfo}` : undefined,
-            thinkingExpanded: false,
-            suggestedActions: MODE_SUGGESTIONS[mode.name],
-          }
+      // Drain any remaining think buffer into the right place
+      if (thinkBuffer.length > 0) {
+        if (insideThinkBlock) {
+          thinkingContent += thinkBuffer
+        } else {
+          assistantContent += thinkBuffer
         }
-        return newHist
-      })
+      }
+
+      // Final update — preserve thinking if any was detected
+      const finalUpdates: Partial<ChatMessage> = {
+        content: assistantContent || "(No response)",
+        suggestedActions: MODE_SUGGESTIONS[mode.name],
+        toolCalls: toolCalls.length > 0 ? toolCalls.map(t => ({ ...t, status: t.status === 'running' ? 'done' as const : t.status })) : [],
+        toolCallsExpanded: false,
+      }
+
+      if (hadThinkingContent) {
+        // Think tags were detected — show toggle with whatever content we captured
+        finalUpdates.thinking = thinkingContent || undefined
+        finalUpdates.thinkingExpanded = isThinkingEnabled()
+      } else {
+        // No thinking tags detected at all — clear the processing placeholder
+        finalUpdates.thinking = undefined
+        finalUpdates.thinkingExpanded = false
+      }
+
+      updateLastAssistant(finalUpdates)
       setTimeout(scrollChatToBottom, 0)
 
     } catch (err: any) {
@@ -499,7 +593,7 @@ export default function App() {
     if (evt.ctrl && evt.name === 't') {
       const newState = !isThinkingEnabled()
       setIsThinkingEnabled(newState)
-      setChatHistory(prev => prev.map(msg => ({...msg, thinkingExpanded: newState})))
+      setChatHistory(prev => prev.map(msg => ({...msg, thinkingExpanded: newState, toolCallsExpanded: newState})))
       return
     }
     if (evt.ctrl && evt.name === 'c') {
@@ -548,27 +642,28 @@ export default function App() {
       return
     }
 
-    // Chat Scrolling Handling
+    // Chat Scrolling Handling — only intercept dedicated scroll keys, NOT typing keys
     if (activeModal() === 'none' && !showMentions() && view() === 'chat') {
       const name = evt.name.toLowerCase()
       if (name === 'pageup') {
-        if (scrollChatBy(-0.5, 'viewport')) return
-        return
-      }
-      if (name === 'up' || name === 'k') {
-        if (scrollChatBy(-0.2, 'viewport')) return
+        scrollChatBy(-0.5, 'viewport')
         return
       }
       if (name === 'pagedown') {
-        if (scrollChatBy(0.5, 'viewport')) return
-        return
-      }
-      if (name === 'down' || name === 'j') {
-        if (scrollChatBy(0.2, 'viewport')) return
+        scrollChatBy(0.5, 'viewport')
         return
       }
       if (name === 'end') {
         scrollChatToBottom()
+        return
+      }
+      // up/down only scroll, don't capture j/k since those are typing chars
+      if (name === 'up') {
+        scrollChatBy(-0.2, 'viewport')
+        return
+      }
+      if (name === 'down') {
+        scrollChatBy(0.2, 'viewport')
         return
       }
     }
@@ -593,7 +688,7 @@ export default function App() {
           }
           setShowMentions(false)
           return
-        } else if (evt.name === ' ') {
+        } else if (evt.name === ' ' || evt.name === 'space') {
           // Allow space to close mentions and continue typing
           setShowMentions(false)
           setQuery(q => q + ' ')
@@ -613,12 +708,14 @@ export default function App() {
         } else {
           setShowMentions(false)
         }
-      } else if (evt.name === ' ' || (evt.name.length === 1 && !evt.ctrl && !evt.meta)) {
+      } else if (evt.name === ' ' || evt.name === 'space' || (evt.name.length === 1 && !evt.ctrl && !evt.meta)) {
         // Space closes mentions, other chars continue filtering
-        if (evt.name === ' ') {
+        if (evt.name === ' ' || evt.name === 'space') {
           setShowMentions(false)
+          setQuery(q => q + ' ')
+        } else {
+          setQuery(q => q + evt.name)
         }
-        setQuery(q => q + evt.name)
       }
       return
     }
@@ -636,8 +733,8 @@ export default function App() {
       } else {
         setShowMentions(false)
       }
-    } else if ((evt.name === ' ' || (evt.name.length === 1 && !evt.ctrl && !evt.meta)) && activeModal() === 'none' && !showMentions() && view() !== 'editor') {
-      const char = evt.name === ' ' ? ' ' : evt.name
+    } else if ((evt.name === ' ' || evt.name === 'space' || (evt.name.length === 1 && !evt.ctrl && !evt.meta)) && activeModal() === 'none' && !showMentions() && view() !== 'editor') {
+      const char = (evt.name === ' ' || evt.name === 'space') ? ' ' : evt.name
       const newVal = query() + char
       setQuery(newVal)
       const match = newVal.match(/@([a-zA-Z0-9_.-]*)$/)
@@ -757,19 +854,97 @@ export default function App() {
                   <Show when={msg.role === 'user'} fallback={
                     // Assistant Message
                     <box flexDirection="column" paddingLeft={3} marginTop={1} marginBottom={2}>
+                      {/* Thinking Toggle Block */}
                       <Show when={msg.thinking}>
                         <box flexDirection="column" marginBottom={1}>
-                          <box flexDirection="row" gap={1}>
-                            <text color={msg.mode?.color || "#0ea5e9"}>{SPINNER_FRAMES[spinnerIndex()]}</text>
-                            <text color="gray">"Thinking (Ctrl+T to toggle)" {msg.thinkingExpanded ? '▼' : '▶'}</text>
+                          <box flexDirection="row" gap={1} alignItems="center">
+                            <text color="#a78bfa">💭</text>
+                            <text color="#a78bfa" bold>Thinking</text>
+                            <text color="#555">{msg.thinkingExpanded ? '▾' : '▸'}</text>
+                            <text color="#555" dimColor>Ctrl+T</text>
                           </box>
                           <Show when={msg.thinkingExpanded}>
-                            <box border={["left"]} borderStyle="single" borderColor="#333" paddingLeft={1} marginTop={1}>
-                              <text color="gray">{msg.thinking}</text>
+                            <box border={["left"]} borderStyle="single" borderColor="#7c3aed" paddingLeft={2} marginTop={1} marginLeft={2}>
+                              <text color="#c4b5fd">{msg.thinking}</text>
                             </box>
                           </Show>
                         </box>
                       </Show>
+
+                      {/* Tool Calls Block — separate from thinking */}
+                      <Show when={msg.toolCalls && msg.toolCalls.length > 0}>
+                        <box flexDirection="column" marginBottom={1}>
+                          <box flexDirection="row" gap={1} alignItems="center" marginBottom={1}>
+                            <text color="#f59e0b">🔧</text>
+                            <text color="#f59e0b" bold>Tool Activity</text>
+                            <text color="#555">({msg.toolCalls!.length})</text>
+                            <text color="#555">{msg.toolCallsExpanded ? '▾' : '▸'}</text>
+                          </box>
+                          <Show when={msg.toolCallsExpanded}>
+                            <box flexDirection="column" marginLeft={2}>
+                              <For each={msg.toolCalls!}>{(tc) => {
+                                const toolIcon = () => {
+                                  const name = tc.tool.toLowerCase()
+                                  if (name.includes('read') || name.includes('view')) return '📖'
+                                  if (name.includes('write') || name.includes('create')) return '✏️'
+                                  if (name.includes('edit') || name.includes('patch') || name.includes('replace')) return '🔨'
+                                  if (name.includes('delete') || name.includes('remove')) return '🗑️'
+                                  if (name.includes('search') || name.includes('grep') || name.includes('find')) return '🔍'
+                                  if (name.includes('exec') || name.includes('run') || name.includes('shell') || name.includes('command')) return '⚡'
+                                  if (name.includes('list') || name.includes('ls') || name.includes('dir')) return '📂'
+                                  return '⚙️'
+                                }
+                                const statusColor = () => {
+                                  if (tc.status === 'running') return '#60a5fa'
+                                  if (tc.status === 'error') return '#ef4444'
+                                  return '#10b981'
+                                }
+                                const statusIcon = () => {
+                                  if (tc.status === 'running') return '⟳'
+                                  if (tc.status === 'error') return '✗'
+                                  return '✓'
+                                }
+                                // Format args nicely
+                                const formattedArgs = () => {
+                                  if (!tc.args || typeof tc.args !== 'object') return ''
+                                  const entries = Object.entries(tc.args)
+                                  if (entries.length === 0) return ''
+                                  // Show key args concisely
+                                  return entries
+                                    .filter(([_, v]) => typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean')
+                                    .slice(0, 3)
+                                    .map(([k, v]) => {
+                                      const val = String(v)
+                                      return `${k}: ${val.length > 40 ? val.slice(0, 40) + '…' : val}`
+                                    })
+                                    .join(' │ ')
+                                }
+                                return (
+                                  <box flexDirection="column" marginBottom={1}>
+                                    <box flexDirection="row" gap={1} alignItems="center">
+                                      <text color={statusColor()}>{statusIcon()}</text>
+                                      <text>{toolIcon()}</text>
+                                      <text color="white" bold>{tc.tool}</text>
+                                    </box>
+                                    <Show when={formattedArgs()}>
+                                      <box paddingLeft={4}>
+                                        <text color="#888">{formattedArgs()}</text>
+                                      </box>
+                                    </Show>
+                                    <Show when={tc.result}>
+                                      <box border={["left"]} borderStyle="single" borderColor={tc.error ? '#ef4444' : '#333'} paddingLeft={1} marginLeft={4} marginTop={0}>
+                                        <text color={tc.error ? '#fca5a5' : '#6ee7b7'}>{tc.result!.length > 200 ? tc.result!.slice(0, 200) + '…' : tc.result}</text>
+                                      </box>
+                                    </Show>
+                                  </box>
+                                )
+                              }}</For>
+                            </box>
+                          </Show>
+                        </box>
+                      </Show>
+
+                      {/* Response content */}
                       <text color="white">{msg.content}</text>
                     </box>
                   }>

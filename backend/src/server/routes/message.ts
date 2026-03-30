@@ -1,7 +1,11 @@
 import { Hono } from 'hono'
 import { agentLoop } from '../../agent/loop'
 import { getSession, getMessages } from '../../session'
+import { Provider } from '../../provider/provider'
+import { ModelsDev } from '../../provider/models'
+import { Log } from '../../util/log'
 
+const log = Log
 export const messageRoutes = new Hono()
 
 messageRoutes.get('/:sessionId/messages', async (c) => {
@@ -16,6 +20,19 @@ messageRoutes.post('/:sessionId/message', async (c) => {
 
   const session = getSession(sessionId)
   if (!session) return c.json({ error: 'Session not found' }, 404)
+
+  // Validate model if provided
+  if (body.model) {
+    const { providerID, modelID } = body.model
+    if (!Provider.validateModel(providerID, modelID)) {
+      const available = ModelsDev.listModelIDs()
+      log.error('invalid model requested', { providerID, modelID, available })
+      return c.json({
+        error: `Invalid model: ${providerID}/${modelID}`,
+        available,
+      }, 400)
+    }
+  }
 
   const abort = new AbortController()
 

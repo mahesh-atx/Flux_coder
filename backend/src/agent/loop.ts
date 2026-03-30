@@ -7,6 +7,7 @@ import {
   touchSession,
 } from '../session'
 import { getAgentByMode, getAgentRuleset, buildSystemPrompt } from '../agent'
+import { Provider } from '../provider/provider'
 import { Log } from '../util/log'
 import { publish } from '../event/bus'
 
@@ -32,7 +33,17 @@ export async function agentLoop(input: {
 
   touchSession(sessionID)
 
-  const modelConfig = input.model ?? { providerID: 'nvidia', modelID: 'meta/llama-3.1-nemotron-70b-instruct' }
+  // Use provided model or fall back to default
+  const modelConfig = input.model ?? Provider.getDefaultModel()
+
+  // Validate model before proceeding
+  if (!Provider.validateModel(modelConfig.providerID, modelConfig.modelID)) {
+    const available = Provider.listModelIDs(modelConfig.providerID)
+    throw new Error(
+      `Invalid model: ${modelConfig.providerID}/${modelConfig.modelID}. ` +
+      `Available: ${available.slice(0, 5).join(', ')}`
+    )
+  }
 
   addMessage(sessionID, {
     role: 'user',
@@ -84,15 +95,16 @@ export async function agentLoop(input: {
             type: 'tool-call',
             tool: chunk.toolName,
             callId: chunk.toolCallId,
-            args: chunk.args,
+            args: (chunk as any).args ?? (chunk as any).input,
           })
           break
         }
 
         case 'tool-result': {
-          const output = typeof chunk.result === 'string'
-            ? chunk.result
-            : JSON.stringify(chunk.result)
+          const raw = (chunk as any).result ?? (chunk as any).output
+          const output = typeof raw === 'string'
+            ? raw
+            : JSON.stringify(raw)
           write('tool-result', {
             type: 'tool-result',
             tool: chunk.toolName,

@@ -2,8 +2,12 @@ import 'dotenv/config'
 import { serve } from '@hono/node-server'
 import { app } from './server'
 import { Log } from './util/log'
+import { Config } from './config'
 
 const port = parseInt(process.env.FLUX_BACKEND_PORT || '3030', 10)
+
+// Load configuration
+Config.load()
 
 Log.info('Starting FLUX backend server', { port })
 

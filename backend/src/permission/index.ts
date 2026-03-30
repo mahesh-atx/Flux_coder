@@ -8,8 +8,15 @@ export interface Rule {
 
 export type Ruleset = Rule[]
 
+function findLast<T>(arr: T[], predicate: (item: T) => boolean): T | undefined {
+  for (let i = arr.length - 1; i >= 0; i--) {
+    if (predicate(arr[i])) return arr[i]
+  }
+  return undefined
+}
+
 export function evaluate(permission: string, ruleset: Ruleset): Action {
-  const match = ruleset.findLast(r => r.permission === permission || r.permission === '*')
+  const match = findLast(ruleset, (r) => r.permission === permission || r.permission === '*')
   return match?.action ?? 'ask'
 }
 
@@ -19,7 +26,7 @@ export function disabled(tools: string[], ruleset: Ruleset): Set<string> {
   const result = new Set<string>()
   for (const tool of tools) {
     const permission = EDIT_TOOLS.includes(tool) ? 'edit' : tool
-    const rule = ruleset.findLast(r => r.permission === permission || r.permission === '*')
+    const rule = findLast(ruleset, (r) => r.permission === permission || r.permission === '*')
     if (!rule) continue
     if (rule.pattern === '*' && rule.action === 'deny') result.add(tool)
   }
